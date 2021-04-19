@@ -169,6 +169,10 @@ def main(config, dataset, n_scans, sequence, odometry_only):
                 global_mesh = global_mesh.remove_duplicated_triangles()
                 global_mesh = global_mesh.remove_duplicated_vertices()
 
+                mesh_map_file = os.path.join(config.out_dir, map_name + "_iterm.ply")
+                print("Saving Map to", mesh_map_file)
+                o3d.io.write_triangle_mesh(+    new_file = "/apps/range_images/" + os.path.splmesh_map_file, global_mesh)
+
     if mapping_enabled:
         # Save map to file
         mesh_map_file = os.path.join(config.out_dir, map_name + ".ply")

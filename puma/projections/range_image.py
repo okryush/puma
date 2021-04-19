@@ -90,7 +90,9 @@ def main(file, w, h):
     # Then draw your image on it :
     ax.imshow(range_image, aspect="auto", cmap="jet_r")
     plt.show()
-    fig.savefig("range_image.png", dpi=dpi)
+
+    new_file = "/apps/range_images/" + os.path.splitext(os.path.basename(file))[0] + "_ri.png"
+    fig.savefig(new_file, dpi=dpi)
 
 
 if __name__ == "__main__":
