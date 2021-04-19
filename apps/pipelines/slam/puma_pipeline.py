@@ -136,10 +136,6 @@ def main(config, dataset, n_scans, sequence, odometry_only):
     global_mesh = o3d.geometry.TriangleMesh()
     mapping_enabled = not odometry_only
 
-    # poses = [np.eye(4, 4, dtype=np.float64)]
-    # deltas = [np.eye(4, 4, dtype=np.float64)]
-    # last_scan = preprocess(o3d.io.read_point_cloud(scan_names[0]), config)
-
     # Start the Odometry and Mapping pipeline
     scan_count = 0
     map_count = 0
@@ -148,20 +144,6 @@ def main(config, dataset, n_scans, sequence, odometry_only):
         str_size = print_progress(pbar, idx, n_scans)
         raw_scan = o3d.io.read_point_cloud(scan_names[idx])
         scan = preprocess(raw_scan, config)
-        # initial_guess = deltas[-1].copy() if config.warm_start else np.eye(4)
-        # if mesh.has_vertices():
-        #     msg = "[scan #{}] Registering scan to mesh model".format(idx)
-        #     pbar.set_description(msg.rjust(str_size))
-        #     mesh.transform(np.linalg.inv(poses[-1]))
-        #     pose = register_scan_to_mesh(
-        #         scan, mesh, initial_guess, deltas, last_scan, config
-        #     )
-        # else:
-        #     pose = run_icp(scan, last_scan, initial_guess, config)
-        # deltas.append(pose)
-        # poses.append(poses[-1] @ pose)
-        # last_scan = copy.deepcopy(scan)
-
         scan.transform(poses[idx])
         local_map.append(scan)
 
@@ -174,25 +156,23 @@ def main(config, dataset, n_scans, sequence, odometry_only):
 
         scan_count += 1
         if scan_count >= config.acc_frame_count or idx == n_scans - 1:
-            # save_poses(poses_file, vel2cam(poses))
+            scan_count = 0
             msg = "[scan #{}] Running PSR over local_map".format(idx)
             pbar.set_description(msg.rjust(str_size))
             mesh, _ = create_mesh_from_map(
                 local_map, config.depth, config.n_threads, config.min_density
             )
 
-        if mapping_enabled:
-            map_count += 1
-            if map_count >= config.acc_map_count or idx == n_scans - 1:
-                map_count = 0
-                global_mesh += mesh
-                global_mesh = global_mesh.remove_duplicated_triangles()
-                global_mesh = global_mesh.remove_duplicated_vertices()
+            global_mesh += mesh
+            global_mesh = global_mesh.remove_duplicated_triangles()
+            global_mesh = global_mesh.remove_duplicated_vertices()
 
-                if scan_count % 100 == 0:
-                    mesh_map_file = os.path.join(config.out_dir, map_name + "_iterm.ply")
-                    print("Saving Map to", mesh_map_file)
-                    o3d.io.write_triangle_mesh(mesh_map_file, global_mesh)
+            map_count += 1
+            if map_count >= config.acc_map_count:
+                map_count = 0
+                mesh_map_file = os.path.join(config.out_dir, map_name + "_iterm.ply")
+                print("Saving Map to", mesh_map_file)
+                o3d.io.write_triangle_mesh(mesh_map_file, global_mesh)
 
     if mapping_enabled:
         # Save map to file
