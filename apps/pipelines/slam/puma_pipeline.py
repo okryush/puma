@@ -17,7 +17,8 @@ from puma.utils import (
     load_config_from_yaml,
     print_progress,
     save_config_yaml,
-    save_poses,
+    # save_poses,
+    load_poses,
     vel2cam,
 )
 
@@ -89,6 +90,16 @@ def main(config, dataset, n_scans, sequence, odometry_only):
     dataset = os.path.join(dataset, "")
     os.makedirs(config.out_dir, exist_ok=True)
 
+    save_plys = False
+
+    if save_plys == True:
+        out_w_ply_dir = config.out_dir + 'w_ply/'
+        out_ply_raw_dir = config.out_dir + 'ply_raw/'
+        out_w_ply_raw_dir = config.out_dir + 'w_ply_raw/'
+        os.makedirs(out_w_ply_dir, exist_ok=False)
+        os.makedirs(out_ply_raw_dir, exist_ok=False)
+        os.makedirs(out_w_ply_raw_dir, exist_ok=False)
+
     map_name = Path(dataset).name
     if sequence:
         map_name += "_" + sequence
@@ -102,9 +113,9 @@ def main(config, dataset, n_scans, sequence, odometry_only):
     config_file = os.path.join(config.out_dir, config_file)
     save_config_yaml(config_file, dict(config))
 
-    poses_file = map_name + ".txt"
-    poses_file = os.path.join(config.out_dir, poses_file)
-    print("Results will be saved to", poses_file)
+    poses_file = Path(dataset).parents[0].joinpath("poses.txt")
+    poses = load_poses(poses_file)
+    print("Loaded poses from", poses_file)
 
     if sequence:
         scans = os.path.join(dataset, "sequences", sequence, "velodyne", "")
@@ -125,9 +136,9 @@ def main(config, dataset, n_scans, sequence, odometry_only):
     global_mesh = o3d.geometry.TriangleMesh()
     mapping_enabled = not odometry_only
 
-    poses = [np.eye(4, 4, dtype=np.float64)]
-    deltas = [np.eye(4, 4, dtype=np.float64)]
-    last_scan = preprocess(o3d.io.read_point_cloud(scan_names[0]), config)
+    # poses = [np.eye(4, 4, dtype=np.float64)]
+    # deltas = [np.eye(4, 4, dtype=np.float64)]
+    # last_scan = preprocess(o3d.io.read_point_cloud(scan_names[0]), config)
 
     # Start the Odometry and Mapping pipeline
     scan_count = 0
@@ -135,26 +146,35 @@ def main(config, dataset, n_scans, sequence, odometry_only):
     pbar = get_progress_bar(1, n_scans)
     for idx in pbar:
         str_size = print_progress(pbar, idx, n_scans)
-        scan = preprocess(o3d.io.read_point_cloud(scan_names[idx]), config)
-        initial_guess = deltas[-1].copy() if config.warm_start else np.eye(4)
-        if mesh.has_vertices():
-            msg = "[scan #{}] Registering scan to mesh model".format(idx)
-            pbar.set_description(msg.rjust(str_size))
-            mesh.transform(np.linalg.inv(poses[-1]))
-            pose = register_scan_to_mesh(
-                scan, mesh, initial_guess, deltas, last_scan, config
-            )
-        else:
-            pose = run_icp(scan, last_scan, initial_guess, config)
-        deltas.append(pose)
-        poses.append(poses[-1] @ pose)
-        last_scan = copy.deepcopy(scan)
-        scan.transform(poses[-1])
+        raw_scan = o3d.io.read_point_cloud(scan_names[idx])
+        scan = preprocess(raw_scan, config)
+        # initial_guess = deltas[-1].copy() if config.warm_start else np.eye(4)
+        # if mesh.has_vertices():
+        #     msg = "[scan #{}] Registering scan to mesh model".format(idx)
+        #     pbar.set_description(msg.rjust(str_size))
+        #     mesh.transform(np.linalg.inv(poses[-1]))
+        #     pose = register_scan_to_mesh(
+        #         scan, mesh, initial_guess, deltas, last_scan, config
+        #     )
+        # else:
+        #     pose = run_icp(scan, last_scan, initial_guess, config)
+        # deltas.append(pose)
+        # poses.append(poses[-1] @ pose)
+        # last_scan = copy.deepcopy(scan)
+
+        scan.transform(poses[idx])
         local_map.append(scan)
+
+        if save_plys == True:
+            stem = os.path.splitext(scan_names[idx].split("/")[-1])[0]
+            o3d.io.write_point_cloud(out_w_ply_dir + stem + ".ply", scan)
+            o3d.io.write_point_cloud(out_ply_raw_dir + stem + ".ply", raw_scan)
+            raw_scan.transform(poses[idx])
+            o3d.io.write_point_cloud(out_w_ply_raw_dir + stem + ".ply", raw_scan)
 
         scan_count += 1
         if scan_count >= config.acc_frame_count or idx == n_scans - 1:
-            save_poses(poses_file, vel2cam(poses))
+            # save_poses(poses_file, vel2cam(poses))
             msg = "[scan #{}] Running PSR over local_map".format(idx)
             pbar.set_description(msg.rjust(str_size))
             mesh, _ = create_mesh_from_map(
