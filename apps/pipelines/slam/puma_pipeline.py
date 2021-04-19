@@ -89,8 +89,9 @@ def main(config, dataset, n_scans, sequence, odometry_only):
     dataset = os.path.join(dataset, "")
     os.makedirs(config.out_dir, exist_ok=True)
 
-    map_name = Path(dataset).parent.name
-    map_name += "_" + sequence
+    map_name = Path(dataset).name
+    if sequence:
+        map_name += "_" + sequence
     map_name += "_depth_" + str(config.depth)
     map_name += "_cropped" if config.min_density else ""
     map_name += "_" + config.method
@@ -105,7 +106,10 @@ def main(config, dataset, n_scans, sequence, odometry_only):
     poses_file = os.path.join(config.out_dir, poses_file)
     print("Results will be saved to", poses_file)
 
-    scans = os.path.join(dataset, "sequences", sequence, "velodyne", "")
+    if sequence:
+        scans = os.path.join(dataset, "sequences", sequence, "velodyne", "")
+    else:
+        scans = os.path.join(dataset)
     scan_names = sorted(glob.glob(scans + "*.ply"))
 
     # Use the whole sequence if -1 is specified

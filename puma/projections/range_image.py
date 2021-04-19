@@ -4,9 +4,9 @@ import click
 import matplotlib.pyplot as plt
 import numpy as np
 import open3d as o3d
+import os
 
-
-def project_to_range_image(cloud, W=1024, H=64, max_range=50):
+def project_to_range_image(cloud, W=1024, H=64, max_range=100):
     """Project a pointcloud into a spherical projection image.projection.
     Function takes no arguments because it can be also called externally if the
     value of the constructor was not set (in case you change your mind about
@@ -15,14 +15,14 @@ def project_to_range_image(cloud, W=1024, H=64, max_range=50):
     current_vertex = np.asarray(cloud.points)
 
     # laser parameters, TODO: make this configurable
-    fov_up = 3.0 / 180.0 * np.pi  # field of view up in radians
-    fov_down = -25.0 / 180.0 * np.pi  # field of view down in radians
-    fov = abs(fov_down) + abs(fov_up)  # get field of view total in radians
+    fov_up = 15.0 / 180.0 * np.pi  # field of view up in radians
+    fov_down = -15.0 / 180.0 * np.pi  # field of view down in radians
+    fov = abs(fov_down) + abs(fov_up)  # get field of view total in radians\
 
     # get depth of all points
     depth = np.linalg.norm(current_vertex, axis=1)
-    current_vertex = current_vertex[(depth > 0) & (depth < max_range)]
-    depth = depth[(depth > 0) & (depth < max_range)]
+    current_vertex = current_vertex[(depth > 1) & (depth < max_range)]
+    depth = depth[(depth > 1) & (depth < max_range)]
 
     # get scan components
     scan_x = current_vertex[:, 0]

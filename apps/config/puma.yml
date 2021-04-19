@@ -18,7 +18,7 @@ normals: range_image
 voxel_size: 0.25
 max_nn: 20
 W: 1024
-H: 64
+H: 16
 
 # misc
 out_dir: results/
