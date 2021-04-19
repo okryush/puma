@@ -105,7 +105,7 @@ def main(dataset, out_dir, sequence, use_intensity):
         pcd = vel2ply(points, use_intensity)
         stem = os.path.splitext(scan_name.split("/")[-1])[0]
         filename = base_path + stem + ".ply"
-        # o3d.io.write_point_cloud(filename, pcd)
+        o3d.io.write_point_cloud(filename, pcd)
 
 
 if __name__ == "__main__":

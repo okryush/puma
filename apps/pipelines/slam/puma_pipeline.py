@@ -169,7 +169,7 @@ def main(config, dataset, n_scans, sequence, odometry_only):
                 global_mesh = global_mesh.remove_duplicated_triangles()
                 global_mesh = global_mesh.remove_duplicated_vertices()
 
-                if map_count % 100 == 0:
+                if scan_count % 100 == 0:
                     mesh_map_file = os.path.join(config.out_dir, map_name + "_iterm.ply")
                     print("Saving Map to", mesh_map_file)
                     o3d.io.write_triangle_mesh(mesh_map_file, global_mesh)
